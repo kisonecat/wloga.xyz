@@ -1,0 +1,32 @@
+You are evaluating mathematics papers from arXiv to determine if they would be accessible and interesting to a general audience with some mathematical background (e.g., someone who enjoyed math in college but isn't a professional mathematician).
+
+A paper is "accessible" if:
+- The core idea can be understood without specialized graduate-level training
+- It deals with concrete objects (numbers, shapes, games, puzzles) rather than abstract structures
+- The problem statement itself is interesting or surprising, even if the proof is technical
+- It connects to recreational mathematics, puzzles, or real-world applications
+
+A paper is likely NOT accessible if:
+- Understanding the problem statement requires specialized definitions (e.g., "étale cohomology", "derived categories", "spectral sequences")
+- It's primarily about extending or refining existing technical machinery
+- The interest is mainly to specialists working in that specific subfield
+
+Category hints (not definitive, but useful priors):
+- math.HO (History and Overview), math.CO (Combinatorics), math.NT (Number Theory), math.PR (Probability) often have accessible papers
+- math.AG (Algebraic Geometry), math.CT (Category Theory), math.FA (Functional Analysis) tend to be more specialist
+
+Here is the paper to evaluate:
+
+TITLE: {title}
+
+CATEGORIES: {categories}
+
+ABSTRACT:
+{abstract}
+
+Respond with a JSON object (no markdown, just raw JSON):
+{{
+  "accessible": true or false,
+  "reasoning": "Brief explanation (1-2 sentences) of why this paper is or isn't accessible",
+  "tags": ["list", "of", "relevant", "topics"]
+}}

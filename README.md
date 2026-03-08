@@ -2,6 +2,8 @@
 
 Experience WLOGA at https://wloga.xyz/
 
+And thank you to arXiv for use of its open access interoperability!
+
 ## What is this?
 
 **Without Loss of General (Audience)** is a curated feed of mathematics preprints from the [arXiv](https://arxiv.org/) math listings — filtered for papers that a broader audience might enjoy.

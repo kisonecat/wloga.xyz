@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WLOGA - Without Loss of General Audience</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dreampulse/computer-modern-web-font@master/fonts.css">
+  <link rel="stylesheet" href="/src/style.css">
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+  <nav class="top-nav">
+    <span class="site-title">Without Loss of General Audience</span>
+  </nav>
+
+  <main>
+    <nav id="month-nav"></nav>
+    <section id="papers"></section>
+  </main>
+
+  <footer>
+    <p>Papers are selected by AI based on accessibility to a general mathematical audience.</p>
+    <p>Thank you to <a href="https://arxiv.org" target="_blank" rel="noopener">arXiv</a> for use of its open access interoperability.</p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
