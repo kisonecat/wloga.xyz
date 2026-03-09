@@ -2,6 +2,8 @@
 
 Experience WLOGA at https://wloga.xyz/
 
+Thank you to mango bird, who asked about accessible arXiv categories at https://www.reddit.com/r/math/comments/1ro77je/most_accessible_arxiv_categories/ and inspired this idea.
+
 And thank you to arXiv for use of its open access interoperability!
 
 ## What is this?
