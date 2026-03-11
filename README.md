@@ -30,6 +30,16 @@ Papers are evaluated for accessibility. Could someone who has taken real analysi
 
 My hope is that a lot of people might be interested in this. A software engineer who loved their algorithms course! Or a graduate student who is curious what their friends in the math department might like! Or a math professor in analysis who wants to stay loosely connected to what's happening in popular mathematics! High school students! Math is for everybody.
 
+## Personalized Rankings
+
+Beyond the curated feed, WLOGA lets you train a personal preference model. Visit the **Train** page and you'll be shown pairs of papers — click the one that interests you more. After a few dozen comparisons, the site learns what you like.
+
+Under the hood, each paper has a 128-dimensional embedding (from [Qwen3-Embedding](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B), truncated via Matryoshka representation). Your preferences fit a weight vector using Bradley-Terry logistic regression: the model learns which directions in embedding space correspond to "papers you'd enjoy." New papers get scored instantly, no retraining needed.
+
+Your model lives in localStorage, so it persists across visits. The **For You** page ranks all papers by your learned preferences — even papers you've never seen get ranked by how similar they are to ones you liked.
+
+The system uses active learning to pick informative pairs: early on it shows diverse papers to explore the space; later it focuses on pairs where your model is uncertain, squeezing maximum signal from each click.
+
 ## What's with the name?
 
 "Without loss of generality" is a phrase that pops up in proofs: it signals *"I'm going to simplify the setup, and the interesting content survives that simplification."*
