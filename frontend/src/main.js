@@ -62,6 +62,16 @@ function formatDate(isoString) {
   });
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ============================================================================
 // Paper Rendering
 // ============================================================================
@@ -73,8 +83,10 @@ function renderPaperCard(paper, options = {}) {
   article.className = 'paper' + (compact ? ' paper-compact' : '');
   article.dataset.id = paper.id;
 
-  const categories = paper.categories.join(', ');
-  const authors = paper.authors.join(', ');
+  const title = escapeHtml(paper.title);
+  const categories = escapeHtml(paper.categories.join(', '));
+  const authors = escapeHtml(paper.authors.join(', '));
+  const abstract = escapeHtml(paper.abstract);
 
   let scoreHtml = '';
   if (showScore && score !== null) {
@@ -84,31 +96,31 @@ function renderPaperCard(paper, options = {}) {
 
   let reasoningHtml = '';
   if (!compact && showReasoning && paper.reasoning) {
-    reasoningHtml = `<p class="paper-reasoning"><em>${paper.reasoning}</em></p>`;
+    reasoningHtml = `<p class="paper-reasoning"><em>${escapeHtml(paper.reasoning)}</em></p>`;
   }
 
   let tagsHtml = '';
   if (paper.tags && paper.tags.length > 0) {
     tagsHtml = `
       <div class="paper-tags">
-        ${paper.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+        ${paper.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
       </div>
     `;
   }
 
   article.innerHTML = `
-    <h2 class="paper-title">${scoreHtml}${paper.title}</h2>
+    <h2 class="paper-title">${scoreHtml}${title}</h2>
     <p class="paper-authors">${authors}</p>
     <p class="paper-meta">
       <span class="paper-categories">${categories}</span>
       <span class="paper-date">${formatDate(paper.published)}</span>
     </p>
-    <div class="paper-abstract">${paper.abstract}</div>
+    <div class="paper-abstract">${abstract}</div>
     ${reasoningHtml}
     ${tagsHtml}
     <div class="paper-links">
-      <a href="${paper.arxivUrl}" target="_blank" rel="noopener">arXiv Abstract</a>
-      <a href="${paper.pdfUrl}" target="_blank" rel="noopener">PDF</a>
+      <a href="${escapeHtml(paper.arxivUrl)}" target="_blank" rel="noopener">arXiv Abstract</a>
+      <a href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener">PDF</a>
     </div>
   `;
 
@@ -120,23 +132,28 @@ function renderComparisonCard(paper) {
   article.className = 'comparison-card';
   article.dataset.id = paper.id;
 
-  const categories = paper.categories.slice(0, 3).join(', ');
-  const authors = paper.authors.slice(0, 3).join(', ') +
-    (paper.authors.length > 3 ? ', et al.' : '');
+  const title = escapeHtml(paper.title);
+  const categories = escapeHtml(paper.categories.slice(0, 3).join(', '));
+  const authors = escapeHtml(
+    paper.authors.slice(0, 3).join(', ') +
+    (paper.authors.length > 3 ? ', et al.' : '')
+  );
 
   // Truncate abstract for comparison view
-  const abstractPreview = paper.abstract.length > 400
-    ? paper.abstract.slice(0, 400) + '...'
-    : paper.abstract;
+  const abstractPreview = escapeHtml(
+    paper.abstract.length > 400
+      ? paper.abstract.slice(0, 400) + '...'
+      : paper.abstract
+  );
 
   article.innerHTML = `
-    <h3 class="card-title">${paper.title}</h3>
+    <h3 class="card-title">${title}</h3>
     <p class="card-authors">${authors}</p>
     <p class="card-categories">${categories}</p>
     <div class="card-abstract">${abstractPreview}</div>
     ${paper.tags && paper.tags.length > 0 ? `
       <div class="card-tags">
-        ${paper.tags.slice(0, 3).map(tag => `<span class="tag">${tag}</span>`).join('')}
+        ${paper.tags.slice(0, 3).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
       </div>
     ` : ''}
   `;
