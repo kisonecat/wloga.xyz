@@ -58,7 +58,32 @@ Key design decisions:
 - Evaluation is idempotent: papers with an existing `evaluation.json`
   are skipped.
 
-### 3. Package
+### 3. Embed (optional)
+
+Generates vector embeddings for semantic search or similarity features.
+Uses SentenceTransformers with `Qwen/Qwen3-Embedding-0.6B`.
+
+```
+data/2503/2503.04127/
+  metadata.json
+  evaluation.json
+  embedding.npy      # 1024-dim float32 vector (NumPy binary format)
+```
+
+The embedding is generated from a formatted text combining:
+- Title
+- Authors
+- Categories
+- Abstract
+
+Idempotent: papers with an existing `embedding.npy` are skipped.
+
+Usage:
+```bash
+./pipeline/embed.py [--model MODEL] [--limit N]
+```
+
+### 5. Package
 
 A final step walks the tree, collects all papers where
 `evaluation.accessible == true`, and writes per-month JSON files:
@@ -70,7 +95,7 @@ output/
     2503.json         # [{ id, title, authors, abstract, categories, arxivUrl, tags, reasoning }, ...]
 ```
 
-### 4. Deploy
+### 6. Deploy
 
 ```bash
 # Build the frontend
@@ -118,6 +143,7 @@ wloga/
   pipeline/
     fetch.py               # arXiv RSS → per-paper metadata.json
     evaluate.py            # metadata.json → evaluation.json via LLM
+    embed.py               # metadata.json → embedding.npy via SentenceTransformers
     package.py             # collect accessible papers → daily JSON
     deploy.py              # sync to S3
     pipeline.py            # orchestrates all stages
@@ -133,6 +159,7 @@ wloga/
       2503.04127/
         metadata.json
         evaluation.json
+        embedding.npy
   output/                  # packaged JSON ready for upload
     data/
       index.json

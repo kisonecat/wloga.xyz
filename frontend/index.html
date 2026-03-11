@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-STPB4YGL83"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-STPB4YGL83');
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WLOGA - Without Loss of General Audience</title>
@@ -22,16 +29,22 @@
 <body>
   <nav class="top-nav">
     <span class="site-title">Without Loss of General Audience</span>
+    <div class="page-nav">
+      <a href="#accessible" class="page-link" data-page="accessible">Curated</a>
+      <a href="#ranked" class="page-link" data-page="ranked">For You</a>
+      <a href="#train" class="page-link" data-page="train">Train</a>
+    </div>
   </nav>
 
   <main>
     <nav id="month-nav"></nav>
-    <section id="papers"></section>
+    <section id="app"></section>
   </main>
 
   <footer>
     <p>Papers are selected by AI based on accessibility to a general mathematical audience.</p>
     <p>Thank you to <a href="https://arxiv.org" target="_blank" rel="noopener">arXiv</a> for use of its open access interoperability.</p>
+    <p><a href="https://github.com/kisonecat/wloga.xyz" target="_blank" rel="noopener">GitHub</a></p>
   </footer>
 
   <script type="module" src="/src/main.js"></script>

@@ -27,17 +27,59 @@ fi
 
 echo "Deploying $OUTPUT_DIR to $BUCKET..."
 
-# Sync with delete to remove old files, but preserve cache headers
+# Sync HTML files
+echo "Uploading HTML files..."
 aws s3 sync "$OUTPUT_DIR" "$BUCKET" \
-    --delete \
+    --exclude "*" \
+    --include "*.html" \
+    --content-type "text/html; charset=utf-8" \
     --cache-control "max-age=3600" \
     $DRY_RUN
 
-# Set longer cache for hashed assets (they have content hashes in filenames)
-aws s3 cp "$BUCKET/assets/" "$BUCKET/assets/" \
-    --recursive \
+# Sync CSS files
+echo "Uploading CSS files..."
+aws s3 sync "$OUTPUT_DIR" "$BUCKET" \
+    --exclude "*" \
+    --include "*.css" \
+    --content-type "text/css; charset=utf-8" \
     --cache-control "max-age=31536000, immutable" \
-    --metadata-directive REPLACE \
     $DRY_RUN
+
+# Sync JavaScript files
+echo "Uploading JavaScript files..."
+aws s3 sync "$OUTPUT_DIR" "$BUCKET" \
+    --exclude "*" \
+    --include "*.js" \
+    --content-type "application/javascript; charset=utf-8" \
+    --cache-control "max-age=31536000, immutable" \
+    $DRY_RUN
+
+# Sync JSON files
+echo "Uploading JSON files..."
+aws s3 sync "$OUTPUT_DIR" "$BUCKET" \
+    --exclude "*" \
+    --include "*.json" \
+    --content-type "application/json; charset=utf-8" \
+    --cache-control "max-age=3600" \
+    $DRY_RUN
+
+# Sync any other files (images, etc.)
+echo "Uploading other files..."
+aws s3 sync "$OUTPUT_DIR" "$BUCKET" \
+    --exclude "*.html" \
+    --exclude "*.css" \
+    --exclude "*.js" \
+    --exclude "*.json" \
+    --cache-control "max-age=86400" \
+    $DRY_RUN
+
+# Delete files that no longer exist locally
+echo "Cleaning up old files..."
+aws s3 sync "$OUTPUT_DIR" "$BUCKET" \
+    --delete \
+    $DRY_RUN
+
+echo "Creating invalidation..."
+aws cloudfront create-invalidation --distribution-id E1CD1ZG7BI85AF --paths "/*"
 
 echo "Done!"
