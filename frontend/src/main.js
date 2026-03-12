@@ -218,6 +218,13 @@ function renderPaperCard(paper, options = {}) {
   `;
 
   article.innerHTML = `
+    <a href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener" class="pdf-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      PDF
+    </a>
     <h2 class="paper-title">${scoreHtml}${title}</h2>
     <p class="paper-authors">${authors}</p>
     <p class="paper-meta">
@@ -225,13 +232,6 @@ function renderPaperCard(paper, options = {}) {
         <span class="paper-categories">${categoryBadges}</span>
         <span class="paper-date">${formatDate(paper.published)}</span>
       </span>
-      <a href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener" class="pdf-link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-        </svg>
-        PDF
-      </a>
     </p>
     <div class="paper-abstract">${abstract}</div>
     ${reasoningHtml}

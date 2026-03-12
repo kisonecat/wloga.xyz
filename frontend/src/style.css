@@ -145,6 +145,7 @@ main {
 }
 
 .paper {
+  position: relative;
   border-bottom: 1px solid var(--color-border);
   padding: 1.5rem 0;
 }
@@ -156,6 +157,7 @@ main {
 .paper-title {
   font-size: 1.25rem;
   margin: 0 0 0.5rem;
+  padding-right: 5rem;
   font-weight: 600;
   line-height: 1.4;
   transition: color 0.2s;
@@ -280,19 +282,23 @@ main {
   color: var(--color-text-light);
 }
 
-/* PDF link in meta area */
+/* PDF link in upper right corner */
 .pdf-link {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.6rem;
+  padding: 0.35rem 0.7rem;
   background: var(--color-accent);
   color: white !important;
   text-decoration: none !important;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
   border-radius: 4px;
   transition: background 0.2s;
+  z-index: 10;
 }
 
 .pdf-link:hover {
