@@ -262,13 +262,14 @@ function renderPaperCard(paper, options = {}) {
       }
     });
 
-    // Prevent double-click from opening links
+    // Double-click opens PDF
     article.addEventListener('dblclick', (e) => {
       // Don't interfere with double-clicks on links or buttons
       if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
         return;
       }
       e.preventDefault();
+      window.open(paper.pdfUrl, '_blank', 'noopener,noreferrer');
     });
 
     // Make article cursor pointer to indicate it's clickable
