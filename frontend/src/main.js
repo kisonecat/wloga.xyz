@@ -1,15 +1,20 @@
 import { embeddingStore } from './EmbeddingStore.js';
 import { preferenceModel } from './PreferenceModel.js';
 import { pairSelector } from './PairSelector.js';
+import { readTracker } from './ReadTracker.js';
+import { TimeFilter } from './TimeFilter.js';
 
 const appContainer = document.getElementById('app');
 const monthNav = document.getElementById('month-nav');
 
 // Global state
 let currentPage = 'accessible';
-let currentMonth = null;
-let allPapers = []; // Papers for current month
+let currentFilter = 'week'; // Changed from currentMonth
+let allPapers = []; // Papers for current filter (may span multiple months)
 let indexData = null;
+let monthPaperCache = new Map(); // Cache: month -> papers[]
+let currentFocusIndex = -1; // Currently focused paper index for keyboard navigation
+let mostRecentDate = null; // Most recent paper date in the data
 
 // ============================================================================
 // Data Loading
@@ -20,23 +25,76 @@ async function fetchIndex() {
   return response.json();
 }
 
-async function fetchMonth(month) {
-  const response = await fetch(`/data/${month}.json`);
-  return response.json();
+async function findMostRecentDate() {
+  // Get the most recent month
+  const sortedMonths = [...indexData.months].sort().reverse();
+  if (sortedMonths.length === 0) return null;
+
+  // Load the most recent month
+  const recentMonth = sortedMonths[0];
+  const papers = await fetchMonth(recentMonth);
+
+  if (papers.length === 0) return null;
+
+  // Find the most recent paper date
+  const dates = papers.map(p => new Date(p.published)).filter(d => !isNaN(d));
+  if (dates.length === 0) return null;
+
+  const mostRecent = new Date(Math.max(...dates));
+  return mostRecent;
 }
 
-async function loadMonthData(month) {
-  if (currentMonth === month && allPapers.length > 0) {
+async function fetchMonth(month) {
+  // Check cache first
+  if (monthPaperCache.has(month)) {
+    return monthPaperCache.get(month);
+  }
+
+  const response = await fetch(`/data/${month}.json`);
+  const papers = await response.json();
+
+  // Cache the result
+  monthPaperCache.set(month, papers);
+
+  return papers;
+}
+
+async function loadFilterData(filter) {
+  // Get required months for this filter
+  const requiredMonths = TimeFilter.getRequiredMonths(filter, indexData.months, mostRecentDate);
+
+  if (requiredMonths.length === 0) {
+    allPapers = [];
     return allPapers;
   }
 
-  currentMonth = month;
-  allPapers = await fetchMonth(month);
+  // Load all required months in parallel
+  const monthPapersPromises = requiredMonths.map(month => fetchMonth(month));
+  const monthPapersArrays = await Promise.all(monthPapersPromises);
 
-  // Load embeddings for this month
-  await embeddingStore.loadMonth(month, allPapers);
+  // Flatten all papers from all months
+  const allMonthPapers = monthPapersArrays.flat();
 
-  return allPapers;
+  // Deduplicate by paper ID (in case of overlaps)
+  const uniquePapers = Array.from(
+    new Map(allMonthPapers.map(p => [p.id, p])).values()
+  );
+
+  // Load embeddings for all required months
+  await Promise.all(
+    requiredMonths.map(month => {
+      const monthPapers = uniquePapers.filter(p => p.id.startsWith(month));
+      return embeddingStore.loadMonth(month, monthPapers);
+    })
+  );
+
+  // Filter papers by date range
+  const filtered = TimeFilter.filterPapers(uniquePapers, filter, mostRecentDate);
+
+  // Update global state
+  allPapers = filtered;
+
+  return filtered;
 }
 
 // ============================================================================
@@ -79,8 +137,12 @@ function escapeHtml(str) {
 function renderPaperCard(paper, options = {}) {
   const { compact = false, showScore = false, score = null, showReasoning = true } = options;
 
+  const isRead = readTracker.isRead(paper.id);
+
   const article = document.createElement('article');
-  article.className = 'paper' + (compact ? ' paper-compact' : '');
+  article.className = 'paper' +
+    (compact ? ' paper-compact' : '') +
+    (isRead ? ' paper-read' : '');
   article.dataset.id = paper.id;
 
   const title = escapeHtml(paper.title);
@@ -112,8 +174,10 @@ function renderPaperCard(paper, options = {}) {
     <h2 class="paper-title">${scoreHtml}${title}</h2>
     <p class="paper-authors">${authors}</p>
     <p class="paper-meta">
-      <span class="paper-categories">${categories}</span>
-      <span class="paper-date">${formatDate(paper.published)}</span>
+      <span class="paper-meta-left">
+        <span class="paper-categories">${categories}</span>
+        <span class="paper-date">${formatDate(paper.published)}</span>
+      </span>
     </p>
     <div class="paper-abstract">${abstract}</div>
     ${reasoningHtml}
@@ -123,6 +187,48 @@ function renderPaperCard(paper, options = {}) {
       <a href="${escapeHtml(paper.pdfUrl)}" target="_blank" rel="noopener">PDF</a>
     </div>
   `;
+
+  // Add read badge if paper is read
+  if (isRead) {
+    const metaDiv = article.querySelector('.paper-meta');
+    const readBadge = document.createElement('span');
+    readBadge.className = 'read-badge';
+    readBadge.innerHTML = '<span class="read-badge-check">✓</span><span class="read-badge-x">×</span> Read';
+    readBadge.dataset.paperId = paper.id;
+    metaDiv.appendChild(readBadge);
+
+    // Add click handler to mark as unread
+    readBadge.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      readTracker.markAsUnread(paper.id);
+      article.classList.remove('paper-read');
+      readBadge.remove();
+    });
+  }
+
+  // Set up intersection observer for this paper (unless it's compact for training view)
+  if (!compact) {
+    readTracker.observe(article, paper.id);
+
+    // Add click handler to move keyboard focus to this paper
+    article.addEventListener('click', (e) => {
+      // Don't handle clicks on links, buttons, or the read badge
+      if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' ||
+          e.target.closest('.read-badge')) {
+        return;
+      }
+
+      const papers = appContainer.querySelectorAll('.paper:not(.paper-compact)');
+      const index = Array.from(papers).indexOf(article);
+      if (index !== -1) {
+        setFocus(papers, index);
+      }
+    });
+
+    // Make article cursor pointer to indicate it's clickable
+    article.style.cursor = 'pointer';
+  }
 
   return article;
 }
@@ -165,25 +271,26 @@ function renderComparisonCard(paper) {
 // Page: Accessible (Curated)
 // ============================================================================
 
-async function renderAccessiblePage(month) {
-  const papers = await loadMonthData(month);
+async function renderAccessiblePage(filter) {
+  // allPapers already loaded and filtered by loadFilterData()
 
   // Filter to accessible papers only
-  const accessiblePapers = papers.filter(p => p.accessible === true);
+  const accessiblePapers = allPapers.filter(p => p.accessible === true);
 
-  // Sort by date, newest first
+  // Sort by date, newest first (regardless of read state)
   accessiblePapers.sort((a, b) => new Date(b.published) - new Date(a.published));
 
   appContainer.innerHTML = '';
 
   if (accessiblePapers.length === 0) {
-    appContainer.innerHTML = '<p class="empty">No accessible papers this month.</p>';
+    appContainer.innerHTML = '<p class="empty">No accessible papers for this time period.</p>';
     return;
   }
 
   const heading = document.createElement('h2');
   heading.className = 'month-heading';
-  heading.textContent = `${formatMonth(month)} (${accessiblePapers.length} curated papers)`;
+  const filterLabel = TimeFilter.getFilterLabel(filter, mostRecentDate);
+  heading.textContent = `${filterLabel} (${accessiblePapers.length} curated papers)`;
   appContainer.appendChild(heading);
 
   for (const paper of accessiblePapers) {
@@ -197,8 +304,9 @@ async function renderAccessiblePage(month) {
 // Page: Ranked (For You)
 // ============================================================================
 
-async function renderRankedPage(month) {
-  const papers = await loadMonthData(month);
+async function renderRankedPage(filter) {
+  // allPapers already loaded and filtered by loadFilterData()
+  const papers = allPapers;
 
   appContainer.innerHTML = '';
 
@@ -206,13 +314,14 @@ async function renderRankedPage(month) {
   headerDiv.className = 'ranked-header';
 
   const compCount = preferenceModel.comparisonCount;
+  const filterLabel = TimeFilter.getFilterLabel(filter, mostRecentDate);
 
   if (compCount === 0) {
     headerDiv.innerHTML = `
-      <h2 class="month-heading">${formatMonth(month)}</h2>
+      <h2 class="month-heading">${filterLabel}</h2>
       <p class="ranked-info">
         No preferences recorded yet.
-        <a href="#train">Train your model</a> to get personalized rankings.
+        <a href="#train/${filter}">Train your model</a> to get personalized rankings.
       </p>
     `;
     appContainer.appendChild(headerDiv);
@@ -234,10 +343,10 @@ async function renderRankedPage(month) {
     const paperMap = new Map(papers.map(p => [p.id, p]));
 
     headerDiv.innerHTML = `
-      <h2 class="month-heading">${formatMonth(month)} - Ranked For You</h2>
+      <h2 class="month-heading">${filterLabel} - Ranked For You</h2>
       <p class="ranked-info">
         Based on ${compCount} comparison${compCount !== 1 ? 's' : ''}.
-        <a href="#train">Continue training</a> to improve.
+        <a href="#train/${filter}">Continue training</a> to improve.
       </p>
     `;
     appContainer.appendChild(headerDiv);
@@ -259,8 +368,8 @@ async function renderRankedPage(month) {
 
 let currentPair = null;
 
-async function renderTrainPage(month) {
-  await loadMonthData(month);
+async function renderTrainPage(filter) {
+  // allPapers already loaded and filtered by loadFilterData()
 
   appContainer.innerHTML = '';
 
@@ -280,7 +389,7 @@ async function renderTrainPage(month) {
     </p>
     <div class="train-actions">
       <button id="reset-model" class="btn btn-secondary">Reset Model</button>
-      <a href="#ranked" class="btn btn-primary">View Rankings</a>
+      <a href="#ranked/${filter}" class="btn btn-primary">View Rankings</a>
     </div>
   `;
   trainContainer.appendChild(header);
@@ -368,7 +477,7 @@ function handleResetModel() {
   if (confirm('Reset your preference model? This will clear all your comparisons.')) {
     preferenceModel.reset();
     pairSelector.reset();
-    renderTrainPage(currentMonth);
+    renderTrainPage(currentFilter);
   }
 }
 
@@ -385,65 +494,164 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Keyboard navigation for accessible and ranked pages
+document.addEventListener('keydown', (e) => {
+  // Only work on accessible and ranked pages
+  if (currentPage === 'train') return;
+
+  const papers = appContainer.querySelectorAll('.paper:not(.paper-compact)');
+  if (papers.length === 0) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    moveFocus(papers, 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    moveFocus(papers, -1);
+  }
+});
+
+function setFocus(papers, index) {
+  // Remove current focus
+  if (currentFocusIndex >= 0 && currentFocusIndex < papers.length) {
+    papers[currentFocusIndex].classList.remove('paper-keyboard-focus');
+  }
+
+  // Update focus index
+  currentFocusIndex = index;
+
+  // Apply new focus
+  const focusedPaper = papers[currentFocusIndex];
+  focusedPaper.classList.add('paper-keyboard-focus');
+
+  // Scroll into view
+  focusedPaper.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center'
+  });
+
+  // Mark as read immediately
+  const paperId = focusedPaper.dataset.id;
+  if (paperId) {
+    readTracker.markAsRead(paperId);
+    // Update the UI to show it's read
+    if (!focusedPaper.classList.contains('paper-read')) {
+      focusedPaper.classList.add('paper-read');
+
+      // Add read badge
+      const metaDiv = focusedPaper.querySelector('.paper-meta');
+      if (metaDiv && !metaDiv.querySelector('.read-badge')) {
+        const readBadge = document.createElement('span');
+        readBadge.className = 'read-badge';
+        readBadge.innerHTML = '<span class="read-badge-check">✓</span><span class="read-badge-x">×</span> Read';
+        readBadge.dataset.paperId = paperId;
+
+        // Add click handler to mark as unread
+        readBadge.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          readTracker.markAsUnread(paperId);
+          focusedPaper.classList.remove('paper-read');
+          readBadge.remove();
+        });
+
+        metaDiv.appendChild(readBadge);
+      }
+    }
+  }
+}
+
+function moveFocus(papers, direction) {
+  // Calculate new focus index
+  let newIndex = currentFocusIndex + direction;
+
+  // Clamp to valid range (no wrap-around)
+  if (newIndex < 0) {
+    newIndex = 0;
+  } else if (newIndex >= papers.length) {
+    newIndex = papers.length - 1;
+  }
+
+  setFocus(papers, newIndex);
+}
+
 // ============================================================================
 // Navigation
 // ============================================================================
 
-function renderMonthNav(months) {
-  const sortedMonths = [...months].sort().reverse();
+function renderFilterNav(currentFilter) {
+  const filters = [
+    { id: 'today', label: TimeFilter.getFilterLabel('today', mostRecentDate) },
+    { id: 'week', label: 'Last Week' },
+    { id: 'month', label: 'Last Month' }
+  ];
 
-  monthNav.innerHTML = sortedMonths.map(month => `
-    <a href="#${currentPage}/${month}" class="month-link" data-month="${month}">
-      ${formatMonth(month)}
-    </a>
+  monthNav.innerHTML = filters.map(filter => `
+    <button
+      class="filter-btn ${filter.id === currentFilter ? 'active' : ''}"
+      data-filter="${filter.id}"
+    >
+      ${filter.label}
+    </button>
   `).join('');
 
-  monthNav.querySelectorAll('.month-link').forEach(link => {
-    link.addEventListener('click', (e) => {
+  monthNav.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
-      const month = link.dataset.month;
-      navigateTo(currentPage, month);
+      const filter = btn.dataset.filter;
+      navigateTo(currentPage, filter);
     });
   });
 }
 
-function updateActiveNav(page, month) {
+function updateActiveNav(page, filter) {
   // Update page nav
   document.querySelectorAll('.page-link').forEach(link => {
     link.classList.toggle('active', link.dataset.page === page);
   });
 
-  // Update month nav
-  document.querySelectorAll('.month-link').forEach(link => {
-    link.classList.toggle('active', link.dataset.month === month);
-    // Update href to maintain current page
-    link.href = `#${page}/${link.dataset.month}`;
+  // Update filter nav
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === filter);
   });
 }
 
-async function navigateTo(page, month) {
+async function navigateTo(page, filter) {
+  // Clean up observers from previous page
+  readTracker.unobserveAll();
+
+  // Reset keyboard focus
+  currentFocusIndex = -1;
+
   currentPage = page;
+  currentFilter = filter;
 
   // Update URL
-  history.pushState(null, '', `#${page}/${month}`);
+  history.pushState(null, '', `#${page}/${filter}`);
 
-  updateActiveNav(page, month);
+  // Re-render filter nav to update labels
+  renderFilterNav(filter);
+
+  updateActiveNav(page, filter);
 
   appContainer.innerHTML = '<p class="loading">Loading...</p>';
 
   try {
+    // Load data for filter
+    await loadFilterData(filter);
+
     switch (page) {
       case 'accessible':
-        await renderAccessiblePage(month);
+        await renderAccessiblePage(filter);
         break;
       case 'ranked':
-        await renderRankedPage(month);
+        await renderRankedPage(filter);
         break;
       case 'train':
-        await renderTrainPage(month);
+        await renderTrainPage(filter);
         break;
       default:
-        await renderAccessiblePage(month);
+        await renderAccessiblePage(filter);
     }
   } catch (error) {
     console.error('Error rendering page:', error);
@@ -456,14 +664,19 @@ function parseHash() {
   const parts = hash.split('/');
 
   let page = parts[0] || 'accessible';
-  let month = parts[1] || null;
+  let filter = parts[1] || 'week';
 
   // Validate page
   if (!['accessible', 'ranked', 'train'].includes(page)) {
     page = 'accessible';
   }
 
-  return { page, month };
+  // Validate filter
+  if (!TimeFilter.isValidFilter(filter)) {
+    filter = 'week';
+  }
+
+  return { page, filter };
 }
 
 // ============================================================================
@@ -486,8 +699,9 @@ async function typeset() {
 
 async function init() {
   try {
-    // Load saved model
+    // Load saved model and read tracker
     preferenceModel.load();
+    readTracker.load();
 
     // Fetch index
     indexData = await fetchIndex();
@@ -497,22 +711,23 @@ async function init() {
       return;
     }
 
-    // Render month nav
-    renderMonthNav(indexData.months);
+    // Find the most recent paper date
+    mostRecentDate = await findMostRecentDate();
 
     // Parse URL and navigate
-    const { page, month } = parseHash();
-    const targetMonth = month && indexData.months.includes(month)
-      ? month
-      : indexData.months.sort().reverse()[0];
+    const { page, filter } = parseHash();
 
-    await navigateTo(page, targetMonth);
+    // Render filter nav
+    renderFilterNav(filter);
+
+    // Navigate to page
+    await navigateTo(page, filter);
 
     // Set up page nav clicks
     document.querySelectorAll('.page-link').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
-        navigateTo(link.dataset.page, currentMonth);
+        navigateTo(link.dataset.page, currentFilter);
       });
     });
 
@@ -524,11 +739,37 @@ async function init() {
 
 // Handle back/forward navigation
 window.addEventListener('popstate', () => {
-  const { page, month } = parseHash();
-  const targetMonth = month && indexData?.months.includes(month)
-    ? month
-    : currentMonth;
-  navigateTo(page, targetMonth);
+  const { page, filter } = parseHash();
+  navigateTo(page, filter);
+});
+
+// Listen for papers being marked as read (from viewport tracking)
+window.addEventListener('paperread', (e) => {
+  const paperId = e.detail.paperId;
+  const paperElement = appContainer.querySelector(`.paper[data-id="${paperId}"]`);
+  if (paperElement && !paperElement.classList.contains('paper-read')) {
+    paperElement.classList.add('paper-read');
+
+    // Add read badge
+    const metaDiv = paperElement.querySelector('.paper-meta');
+    if (metaDiv && !metaDiv.querySelector('.read-badge')) {
+      const readBadge = document.createElement('span');
+      readBadge.className = 'read-badge';
+      readBadge.innerHTML = '<span class="read-badge-check">✓</span><span class="read-badge-x">×</span> Read';
+      readBadge.dataset.paperId = paperId;
+
+      // Add click handler to mark as unread
+      readBadge.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        readTracker.markAsUnread(paperId);
+        paperElement.classList.remove('paper-read');
+        readBadge.remove();
+      });
+
+      metaDiv.appendChild(readBadge);
+    }
+  }
 });
 
 init();
