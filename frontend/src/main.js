@@ -373,6 +373,13 @@ async function renderRankedPage(filter) {
 
   appContainer.innerHTML = '';
 
+  // Check if we have any papers left after filtering
+  if (papers.length === 0) {
+    const filterLabel = TimeFilter.getFilterLabel(filter, mostRecentDate);
+    appContainer.innerHTML = `<p class="empty">No papers for ${filterLabel}.</p>`;
+    return;
+  }
+
   const headerDiv = document.createElement('div');
   headerDiv.className = 'ranked-header';
 
