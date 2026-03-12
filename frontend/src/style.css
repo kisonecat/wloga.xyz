@@ -273,19 +273,54 @@ main {
   color: var(--color-text-light);
 }
 
-.paper-links {
-  display: flex;
-  gap: 1rem;
+/* PDF link in meta area */
+.pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  background: var(--color-accent);
+  color: white !important;
+  text-decoration: none !important;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: background 0.2s;
 }
 
-.paper-links a {
-  color: var(--color-accent);
-  text-decoration: none;
+.pdf-link:hover {
+  background: var(--color-accent-hover);
+}
+
+.pdf-link svg {
+  flex-shrink: 0;
+}
+
+/* arXiv link after abstract */
+.arxiv-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text) !important;
+  text-decoration: none !important;
   font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s;
 }
 
-.paper-links a:hover {
-  text-decoration: underline;
+.arxiv-link:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent) !important;
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.arxiv-link svg {
+  flex-shrink: 0;
 }
 
 .paper-keyboard-focus {
