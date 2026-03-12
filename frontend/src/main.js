@@ -262,6 +262,15 @@ function renderPaperCard(paper, options = {}) {
       }
     });
 
+    // Prevent double-click from opening links
+    article.addEventListener('dblclick', (e) => {
+      // Don't interfere with double-clicks on links or buttons
+      if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+        return;
+      }
+      e.preventDefault();
+    });
+
     // Make article cursor pointer to indicate it's clickable
     article.style.cursor = 'pointer';
   }
