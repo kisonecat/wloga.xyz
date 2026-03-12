@@ -342,10 +342,10 @@ async function renderAccessiblePage(filter) {
   const filterLabel = TimeFilter.getFilterLabel(filter, mostRecentDate);
 
   // Show count of visible vs total papers if hiding read
-  let countText = `${accessiblePapers.length} curated papers`;
+  let countText = `${accessiblePapers.length} general papers`;
   if (hideReadPapers) {
     const totalCount = allPapers.filter(p => p.accessible === true).length;
-    countText = `${accessiblePapers.length} of ${totalCount} curated papers`;
+    countText = `${accessiblePapers.length} of ${totalCount} general papers`;
   }
 
   heading.textContent = `${filterLabel} (${countText})`;
