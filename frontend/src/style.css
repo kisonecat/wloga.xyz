@@ -286,7 +286,7 @@ main {
 .pdf-link {
   position: absolute;
   top: 1.5rem;
-  right: 1.5rem;
+  right: 0;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
