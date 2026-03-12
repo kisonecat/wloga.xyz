@@ -5,7 +5,7 @@
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
   --color-border: #e5e5e5;
-  --color-tag-bg: #f0f0f0;
+  --color-tag-bg: #d4d4d4;
   --color-nav-bg: #fff;
   --max-width: 800px;
   --nav-height: 3.5rem;
@@ -588,7 +588,7 @@ mjx-container {
 }
 
 .btn-secondary:hover {
-  background: #e0e0e0;
+  background: #c0c0c0;
 }
 
 .btn-text {
