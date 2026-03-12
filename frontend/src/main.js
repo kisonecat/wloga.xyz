@@ -146,9 +146,15 @@ function renderPaperCard(paper, options = {}) {
   article.dataset.id = paper.id;
 
   const title = escapeHtml(paper.title);
-  const categories = escapeHtml(paper.categories.join(', '));
   const authors = escapeHtml(paper.authors.join(', '));
   const abstract = escapeHtml(paper.abstract);
+
+  // Render categories as individual badges
+  const categoryBadges = paper.categories.map(cat => {
+    const cleanCat = escapeHtml(cat);
+    const categoryClass = cat.replace(/\./g, '-'); // math.CO -> math-CO
+    return `<span class="paper-category category-${categoryClass}">${cleanCat}</span>`;
+  }).join('');
 
   let scoreHtml = '';
   if (showScore && score !== null) {
@@ -175,7 +181,7 @@ function renderPaperCard(paper, options = {}) {
     <p class="paper-authors">${authors}</p>
     <p class="paper-meta">
       <span class="paper-meta-left">
-        <span class="paper-categories">${categories}</span>
+        <span class="paper-categories">${categoryBadges}</span>
         <span class="paper-date">${formatDate(paper.published)}</span>
       </span>
     </p>
@@ -239,11 +245,17 @@ function renderComparisonCard(paper) {
   article.dataset.id = paper.id;
 
   const title = escapeHtml(paper.title);
-  const categories = escapeHtml(paper.categories.slice(0, 3).join(', '));
   const authors = escapeHtml(
     paper.authors.slice(0, 3).join(', ') +
     (paper.authors.length > 3 ? ', et al.' : '')
   );
+
+  // Render first 3 categories as badges
+  const categoryBadges = paper.categories.slice(0, 3).map(cat => {
+    const cleanCat = escapeHtml(cat);
+    const categoryClass = cat.replace(/\./g, '-');
+    return `<span class="paper-category category-${categoryClass}">${cleanCat}</span>`;
+  }).join('');
 
   // Truncate abstract for comparison view
   const abstractPreview = escapeHtml(
@@ -255,7 +267,7 @@ function renderComparisonCard(paper) {
   article.innerHTML = `
     <h3 class="card-title">${title}</h3>
     <p class="card-authors">${authors}</p>
-    <p class="card-categories">${categories}</p>
+    <div class="card-categories">${categoryBadges}</div>
     <div class="card-abstract">${abstractPreview}</div>
     ${paper.tags && paper.tags.length > 0 ? `
       <div class="card-tags">

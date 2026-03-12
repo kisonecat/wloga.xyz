@@ -160,10 +160,58 @@ main {
 }
 
 .paper-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.paper-category {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  background: var(--color-tag-bg);
-  padding: 0.1rem 0.4rem;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 3px;
+  color: white;
+  font-weight: 500;
+}
+
+/* Category colors */
+.category-math-AC { background-color: #8b7355; } /* Commutative Algebra - Brown */
+.category-math-AG { background-color: #7b68ee; } /* Algebraic Geometry - Medium slate blue */
+.category-math-AP { background-color: #2e8b57; } /* Analysis of PDEs - Sea green */
+.category-math-AT { background-color: #4682b4; } /* Algebraic Topology - Steel blue */
+.category-math-CA { background-color: #20b2aa; } /* Classical Analysis - Light sea green */
+.category-math-CO { background-color: #ff8c00; } /* Combinatorics - Dark orange */
+.category-math-CT { background-color: #708090; } /* Category Theory - Slate gray */
+.category-math-CV { background-color: #ba55d3; } /* Complex Variables - Medium orchid */
+.category-math-DG { background-color: #9370db; } /* Differential Geometry - Medium purple */
+.category-math-DS { background-color: #dc143c; } /* Dynamical Systems - Crimson */
+.category-math-FA { background-color: #3cb371; } /* Functional Analysis - Medium sea green */
+.category-math-GM { background-color: #808080; } /* General Mathematics - Gray */
+.category-math-GN { background-color: #87ceeb; } /* General Topology - Sky blue */
+.category-math-GR { background-color: #daa520; } /* Group Theory - Goldenrod */
+.category-math-GT { background-color: #1e90ff; } /* Geometric Topology - Dodger blue */
+.category-math-HO { background-color: #a0522d; } /* History and Overview - Sienna */
+.category-math-IT { background-color: #00ced1; } /* Information Theory - Dark turquoise */
+.category-math-KT { background-color: #6a5acd; } /* K-Theory - Slate blue */
+.category-math-LO { background-color: #696969; } /* Logic - Dim gray */
+.category-math-MG { background-color: #32cd32; } /* Metric Geometry - Lime green */
+.category-math-MP { background-color: #cd5c5c; } /* Mathematical Physics - Indian red */
+.category-math-NA { background-color: #48d1cc; } /* Numerical Analysis - Medium turquoise */
+.category-math-NT { background-color: #f0a500; } /* Number Theory - Orange (gold) */
+.category-math-OA { background-color: #191970; } /* Operator Algebras - Midnight blue */
+.category-math-OC { background-color: #228b22; } /* Optimization and Control - Forest green */
+.category-math-PR { background-color: #9932cc; } /* Probability - Dark orchid */
+.category-math-QA { background-color: #8a2be2; } /* Quantum Algebra - Blue violet */
+.category-math-RA { background-color: #ff6347; } /* Rings and Algebras - Tomato */
+.category-math-RT { background-color: #db7093; } /* Representation Theory - Pale violet red */
+.category-math-SG { background-color: #50c878; } /* Symplectic Geometry - Emerald */
+.category-math-SP { background-color: #4169e1; } /* Spectral Theory - Royal blue */
+.category-math-ST { background-color: #9370db; } /* Statistics Theory - Medium purple */
+
+/* Default for any non-math categories */
+.paper-category:not([class*="category-math-"]) {
+  background-color: var(--color-tag-bg);
+  color: var(--color-text);
 }
 
 .paper-abstract {
@@ -446,13 +494,9 @@ mjx-container {
 }
 
 .card-categories {
-  font-size: 0.8rem;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  color: var(--color-text-light);
-  background: var(--color-tag-bg);
-  display: inline-block;
-  padding: 0.1rem 0.4rem;
-  border-radius: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
   margin: 0 0 0.75rem;
 }
 
