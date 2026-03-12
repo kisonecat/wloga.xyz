@@ -259,7 +259,20 @@ main {
 }
 
 .paper-keyboard-focus {
+  position: relative;
+}
+
+.paper-keyboard-focus::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  top: 0;
+  bottom: 0;
   background: #f0f0f0;
+  z-index: -1;
 }
 
 .read-badge {
