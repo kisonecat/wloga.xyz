@@ -23,7 +23,7 @@ let readPapersAtPageLoad = new Set(); // Papers that were read at page load time
 // ============================================================================
 
 async function fetchIndex() {
-  const response = await fetch('/data/index.json');
+  const response = await fetch('/data/index.json', { cache: 'no-cache' });
   return response.json();
 }
 
@@ -52,7 +52,7 @@ async function fetchMonth(month) {
     return monthPaperCache.get(month);
   }
 
-  const response = await fetch(`/data/${month}.json`);
+  const response = await fetch(`/data/${month}.json`, { cache: 'no-cache' });
   const papers = await response.json();
 
   // Cache the result
