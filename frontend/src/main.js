@@ -15,6 +15,8 @@ let indexData = null;
 let monthPaperCache = new Map(); // Cache: month -> papers[]
 let currentFocusIndex = -1; // Currently focused paper index for keyboard navigation
 let mostRecentDate = null; // Most recent paper date in the data
+let hideReadPapers = false; // Toggle state for hiding read papers
+let readPapersAtPageLoad = new Set(); // Papers that were read at page load time
 
 // ============================================================================
 // Data Loading
@@ -315,7 +317,15 @@ async function renderAccessiblePage(filter) {
   // allPapers already loaded and filtered by loadFilterData()
 
   // Filter to accessible papers only
-  const accessiblePapers = allPapers.filter(p => p.accessible === true);
+  let accessiblePapers = allPapers.filter(p => p.accessible === true);
+
+  // If toggle is on, filter out papers that were read BEFORE page load
+  // Papers marked as read during THIS session stay visible
+  if (hideReadPapers) {
+    accessiblePapers = accessiblePapers.filter(
+      p => !readPapersAtPageLoad.has(p.id)
+    );
+  }
 
   // Sort by date, newest first (regardless of read state)
   accessiblePapers.sort((a, b) => new Date(b.published) - new Date(a.published));
@@ -330,7 +340,15 @@ async function renderAccessiblePage(filter) {
   const heading = document.createElement('h2');
   heading.className = 'month-heading';
   const filterLabel = TimeFilter.getFilterLabel(filter, mostRecentDate);
-  heading.textContent = `${filterLabel} (${accessiblePapers.length} curated papers)`;
+
+  // Show count of visible vs total papers if hiding read
+  let countText = `${accessiblePapers.length} curated papers`;
+  if (hideReadPapers) {
+    const totalCount = allPapers.filter(p => p.accessible === true).length;
+    countText = `${accessiblePapers.length} of ${totalCount} curated papers`;
+  }
+
+  heading.textContent = `${filterLabel} (${countText})`;
   appContainer.appendChild(heading);
 
   for (const paper of accessiblePapers) {
@@ -346,7 +364,12 @@ async function renderAccessiblePage(filter) {
 
 async function renderRankedPage(filter) {
   // allPapers already loaded and filtered by loadFilterData()
-  const papers = allPapers;
+  let papers = allPapers;
+
+  // If toggle is on, filter out papers that were read BEFORE page load
+  if (hideReadPapers) {
+    papers = papers.filter(p => !readPapersAtPageLoad.has(p.id));
+  }
 
   appContainer.innerHTML = '';
 
@@ -626,15 +649,23 @@ function renderFilterNav(currentFilter) {
     { id: 'month', label: 'Last Month' }
   ];
 
-  monthNav.innerHTML = filters.map(filter => `
-    <button
-      class="filter-btn ${filter.id === currentFilter ? 'active' : ''}"
-      data-filter="${filter.id}"
-    >
-      ${filter.label}
+  monthNav.innerHTML = `
+    <div class="filter-buttons">
+      ${filters.map(filter => `
+        <button
+          class="filter-btn ${filter.id === currentFilter ? 'active' : ''}"
+          data-filter="${filter.id}"
+        >
+          ${filter.label}
+        </button>
+      `).join('')}
+    </div>
+    <button class="toggle-read-btn" id="toggle-read-btn">
+      ${hideReadPapers ? 'Show Read' : 'Hide Read'}
     </button>
-  `).join('');
+  `;
 
+  // Event listeners for filter buttons
   monthNav.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -642,6 +673,17 @@ function renderFilterNav(currentFilter) {
       navigateTo(currentPage, filter);
     });
   });
+
+  // Event listener for toggle button
+  const toggleBtn = document.getElementById('toggle-read-btn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      hideReadPapers = !hideReadPapers;
+      // Re-render current page with new toggle state
+      rerenderCurrentPage();
+    });
+  }
 }
 
 function updateActiveNav(page, filter) {
@@ -680,6 +722,12 @@ async function navigateTo(page, filter) {
     // Load data for filter
     await loadFilterData(filter);
 
+    // Capture papers that are ALREADY read before rendering this page
+    // These are the ones that can be hidden by the toggle
+    readPapersAtPageLoad = new Set(
+      allPapers.filter(p => readTracker.isRead(p.id)).map(p => p.id)
+    );
+
     switch (page) {
       case 'accessible':
         await renderAccessiblePage(filter);
@@ -695,6 +743,35 @@ async function navigateTo(page, filter) {
     }
   } catch (error) {
     console.error('Error rendering page:', error);
+    appContainer.innerHTML = '<p class="error">Error loading content.</p>';
+  }
+}
+
+async function rerenderCurrentPage() {
+  // Update toggle button text
+  const toggleBtn = document.getElementById('toggle-read-btn');
+  if (toggleBtn) {
+    toggleBtn.textContent = hideReadPapers ? 'Show Read' : 'Hide Read';
+  }
+
+  // Re-render current page without reloading data
+  appContainer.innerHTML = '<p class="loading">Loading...</p>';
+
+  try {
+    switch (currentPage) {
+      case 'accessible':
+        await renderAccessiblePage(currentFilter);
+        break;
+      case 'ranked':
+        await renderRankedPage(currentFilter);
+        break;
+      case 'train':
+        // Train page doesn't have read filtering
+        await renderTrainPage(currentFilter);
+        break;
+    }
+  } catch (error) {
+    console.error('Error re-rendering page:', error);
     appContainer.innerHTML = '<p class="error">Error loading content.</p>';
   }
 }
