@@ -401,7 +401,7 @@ async function renderRankedPage(filter) {
       <h2 class="month-heading">${filterLabel}</h2>
       <p class="ranked-info">
         No preferences recorded yet.
-        <a href="#train/${filter}">Train your model</a> to get personalized rankings.
+        <a href="/train/${filter}">Train your model</a> to get personalized rankings.
       </p>
     `;
     appContainer.appendChild(headerDiv);
@@ -426,7 +426,7 @@ async function renderRankedPage(filter) {
       <h2 class="month-heading">${filterLabel} - Ranked For You</h2>
       <p class="ranked-info">
         Based on ${compCount} comparison${compCount !== 1 ? 's' : ''}.
-        <a href="#train/${filter}">Continue training</a> to improve.
+        <a href="/train/${filter}">Continue training</a> to improve.
       </p>
     `;
     appContainer.appendChild(headerDiv);
@@ -469,7 +469,7 @@ async function renderTrainPage(filter) {
     </p>
     <div class="train-actions">
       <button id="reset-model" class="btn btn-secondary">Reset Model</button>
-      <a href="#ranked/${filter}" class="btn btn-primary">View Rankings</a>
+      <a href="/ranked/${filter}" class="btn btn-primary">View Rankings</a>
     </div>
   `;
   trainContainer.appendChild(header);
@@ -726,7 +726,7 @@ async function navigateTo(page, filter) {
   currentFilter = filter;
 
   // Update URL
-  history.pushState(null, '', `#${page}/${filter}`);
+  history.pushState(null, '', `/${page}/${filter}`);
 
   // Re-render filter nav to update labels
   renderFilterNav(filter);
@@ -793,9 +793,9 @@ async function rerenderCurrentPage() {
   }
 }
 
-function parseHash() {
-  const hash = window.location.hash.slice(1);
-  const parts = hash.split('/');
+function parseUrl() {
+  const pathname = window.location.pathname;
+  const parts = pathname.split('/').filter(p => p); // Remove empty strings
 
   let page = parts[0] || 'accessible';
   let filter = parts[1] || 'week';
@@ -849,7 +849,7 @@ async function init() {
     mostRecentDate = await findMostRecentDate();
 
     // Parse URL and navigate
-    const { page, filter } = parseHash();
+    const { page, filter } = parseUrl();
 
     // Render filter nav
     renderFilterNav(filter);
@@ -873,7 +873,7 @@ async function init() {
 
 // Handle back/forward navigation
 window.addEventListener('popstate', () => {
-  const { page, filter } = parseHash();
+  const { page, filter } = parseUrl();
   navigateTo(page, filter);
 });
 
@@ -903,6 +903,30 @@ window.addEventListener('paperread', (e) => {
 
       metaDiv.appendChild(readBadge);
     }
+  }
+});
+
+// Intercept all internal link clicks to use client-side routing
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('a');
+  if (!link) return;
+
+  // Only handle internal links
+  if (link.target === '_blank' || link.hostname !== window.location.hostname) {
+    return;
+  }
+
+  const pathname = link.pathname;
+  const parts = pathname.split('/').filter(p => p);
+
+  // Check if this is a valid internal route
+  const page = parts[0];
+  const filter = parts[1];
+
+  if (['accessible', 'ranked', 'train'].includes(page) &&
+      (!filter || TimeFilter.isValidFilter(filter))) {
+    e.preventDefault();
+    navigateTo(page || 'accessible', filter || 'week');
   }
 });
 
