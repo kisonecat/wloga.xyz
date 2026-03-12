@@ -130,6 +130,34 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+function processLatexFormatting(str) {
+  if (!str) return '';
+
+  // First escape HTML to prevent injection
+  let result = escapeHtml(str);
+
+  // Convert {\em text} to <em>text</em>
+  // Handle nested braces by matching balanced braces
+  result = result.replace(/\{\\em\s+([^}]+)\}/g, '<em>$1</em>');
+
+  // Convert \emph{text} to <em>text</em>
+  result = result.replace(/\\emph\{([^}]+)\}/g, '<em>$1</em>');
+
+  // Convert {\it text} to <em>text</em> (italic)
+  result = result.replace(/\{\\it\s+([^}]+)\}/g, '<em>$1</em>');
+
+  // Convert \textit{text} to <em>text</em>
+  result = result.replace(/\\textit\{([^}]+)\}/g, '<em>$1</em>');
+
+  // Convert {\bf text} to <strong>text</strong> (bold)
+  result = result.replace(/\{\\bf\s+([^}]+)\}/g, '<strong>$1</strong>');
+
+  // Convert \textbf{text} to <strong>text</strong>
+  result = result.replace(/\\textbf\{([^}]+)\}/g, '<strong>$1</strong>');
+
+  return result;
+}
+
 // ============================================================================
 // Paper Rendering
 // ============================================================================
@@ -145,9 +173,9 @@ function renderPaperCard(paper, options = {}) {
     (isRead ? ' paper-read' : '');
   article.dataset.id = paper.id;
 
-  const title = escapeHtml(paper.title);
+  const title = processLatexFormatting(paper.title);
   const authors = escapeHtml(paper.authors.join(', '));
-  const abstract = escapeHtml(paper.abstract);
+  const abstract = processLatexFormatting(paper.abstract);
 
   // Render categories as individual badges
   const categoryBadges = paper.categories.map(cat => {
@@ -164,14 +192,14 @@ function renderPaperCard(paper, options = {}) {
 
   let reasoningHtml = '';
   if (!compact && showReasoning && paper.reasoning) {
-    reasoningHtml = `<p class="paper-reasoning"><em>${escapeHtml(paper.reasoning)}</em></p>`;
+    reasoningHtml = `<p class="paper-reasoning"><em>${processLatexFormatting(paper.reasoning)}</em></p>`;
   }
 
   let tagsHtml = '';
   if (paper.tags && paper.tags.length > 0) {
     tagsHtml = `
       <div class="paper-tags">
-        ${paper.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+        ${paper.tags.map(tag => `<span class="tag">${processLatexFormatting(tag)}</span>`).join('')}
       </div>
     `;
   }
@@ -244,7 +272,7 @@ function renderComparisonCard(paper) {
   article.className = 'comparison-card';
   article.dataset.id = paper.id;
 
-  const title = escapeHtml(paper.title);
+  const title = processLatexFormatting(paper.title);
   const authors = escapeHtml(
     paper.authors.slice(0, 3).join(', ') +
     (paper.authors.length > 3 ? ', et al.' : '')
@@ -258,7 +286,7 @@ function renderComparisonCard(paper) {
   }).join('');
 
   // Truncate abstract for comparison view
-  const abstractPreview = escapeHtml(
+  const abstractPreview = processLatexFormatting(
     paper.abstract.length > 400
       ? paper.abstract.slice(0, 400) + '...'
       : paper.abstract
@@ -271,7 +299,7 @@ function renderComparisonCard(paper) {
     <div class="card-abstract">${abstractPreview}</div>
     ${paper.tags && paper.tags.length > 0 ? `
       <div class="card-tags">
-        ${paper.tags.slice(0, 3).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+        ${paper.tags.slice(0, 3).map(tag => `<span class="tag">${processLatexFormatting(tag)}</span>`).join('')}
       </div>
     ` : ''}
   `;
