@@ -247,11 +247,22 @@ function renderPaperCard(paper, options = {}) {
   if (!compact) {
     readTracker.observe(article, paper.id);
 
+    // Add click handler to title to open PDF
+    const titleElement = article.querySelector('.paper-title');
+    if (titleElement) {
+      titleElement.style.cursor = 'pointer';
+      titleElement.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(paper.pdfUrl, '_blank', 'noopener,noreferrer');
+      });
+    }
+
     // Add click handler to move keyboard focus to this paper
     article.addEventListener('click', (e) => {
-      // Don't handle clicks on links, buttons, or the read badge
+      // Don't handle clicks on links, buttons, title, or the read badge
       if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' ||
-          e.target.closest('.read-badge')) {
+          e.target.closest('.read-badge') || e.target.closest('.paper-title')) {
         return;
       }
 
