@@ -200,11 +200,22 @@ function renderPaperCard(paper, options = {}) {
   let tagsHtml = '';
   if (paper.tags && paper.tags.length > 0) {
     tagsHtml = `
-      <div class="paper-tags">
+      <div class="paper-tags-list">
         ${paper.tags.map(tag => `<span class="tag">${processLatexFormatting(tag)}</span>`).join('')}
       </div>
     `;
   }
+
+  const arxivLinkHtml = `
+    <a href="${escapeHtml(paper.arxivUrl)}" target="_blank" rel="noopener" class="arxiv-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <line x1="10" y1="14" x2="21" y2="3"></line>
+      </svg>
+      View on arXiv
+    </a>
+  `;
 
   article.innerHTML = `
     <h2 class="paper-title">${scoreHtml}${title}</h2>
@@ -223,16 +234,11 @@ function renderPaperCard(paper, options = {}) {
       </a>
     </p>
     <div class="paper-abstract">${abstract}</div>
-    <a href="${escapeHtml(paper.arxivUrl)}" target="_blank" rel="noopener" class="arxiv-link">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-        <polyline points="15 3 21 3 21 9"></polyline>
-        <line x1="10" y1="14" x2="21" y2="3"></line>
-      </svg>
-      View on arXiv
-    </a>
     ${reasoningHtml}
-    ${tagsHtml}
+    <div class="paper-tags">
+      ${tagsHtml}
+      ${arxivLinkHtml}
+    </div>
   `;
 
   // Add read badge if paper is read
